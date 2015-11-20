@@ -260,6 +260,43 @@ public class BSPJob extends BSPJobContext {
     return conf.getInt("bsp.peers.num", 1);
   }
 
+  /**
+   * Set the number of task groups.
+   * @param groups
+   */
+  public void setNumTaskGroups(int groups) { conf.setInt("bsp.groups.num", groups); }
+
+  public int getNumTaskGroups() {
+    return conf.getInt("bsp.groups.num", 1);
+  }
+
+  /**
+   * Set the number of tasks per group.
+   * @param tasksPerGroup
+   */
+  public void setNumTasksPerGroup(int tasksPerGroup) {
+    conf.setInt("bsp.tasks.per.group", tasksPerGroup);
+  }
+
+  public int getNumTasksPerGroup() {
+    return conf.getInt("bsp.tasks.per.group", 1);
+  }
+
+  /**
+   * Set groups of tasks.
+   * @param groups The number of groups
+   * @param tasksPerGroup The number of tasks per group
+   */
+  public void setTaskGroups(int groups, int tasksPerGroup) {
+    this.setNumTaskGroups(groups);
+    this.setNumTasksPerGroup(tasksPerGroup);
+    // Set automatically the number of tasks for running MultiBSPJob using group barrier sync.
+    this.setNumBspTask(groups * tasksPerGroup);
+    this.set("hama.sync.peer.class",
+        org.apache.hama.bsp.sync.ZooKeeperRegionBarrierSyncClientImpl.class
+            .getCanonicalName());
+  }
+
   @SuppressWarnings({ "rawtypes" })
   public InputFormat getInputFormat() {
     return ReflectionUtils.newInstance(

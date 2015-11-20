@@ -97,15 +97,19 @@ public class ZooKeeperSyncClientImpl extends ZKSyncClient implements
         final String pathToSuperstepZnode = constructKey(taskId.getJobID(),
             "sync", "" + superstep);
 
+        LOG.info("path to superstep znode: " + pathToSuperstepZnode);
+
         writeNode(pathToSuperstepZnode, null, true, null);
         BarrierWatcher barrierWatcher = new BarrierWatcher();
         // this is really needed to register the barrier watcher, don't remove
         // this line!
         zk.exists(pathToSuperstepZnode + "/ready", barrierWatcher);
+        LOG.info("GetNodeName : " + getNodeName(taskId, superstep));
         zk.create(getNodeName(taskId, superstep), null, Ids.OPEN_ACL_UNSAFE,
             CreateMode.EPHEMERAL);
 
         List<String> znodes = zk.getChildren(pathToSuperstepZnode, false);
+        LOG.info("enterbarrier childnode: " + znodes.toString());
         int size = znodes.size(); // may contains ready
         boolean hasReady = znodes.contains("ready");
         if (hasReady) {
@@ -239,6 +243,7 @@ public class ZooKeeperSyncClientImpl extends ZKSyncClient implements
       String hostAddress, long port) {
     int count = 0;
     String jobRegisterKey = constructKey(jobId, "peers");
+    LOG.info("Root Register Key: " + jobRegisterKey);
     Stat stat = null;
 
     while (stat != null) {
@@ -275,6 +280,8 @@ public class ZooKeeperSyncClientImpl extends ZKSyncClient implements
     // byte[] taskIdBytes = serializeTaskId(taskId);
     String taskRegisterKey = constructKey(jobId, "peers", hostAddress + ":"
         + port);
+    LOG.info("Task Register Key: " + taskRegisterKey);
+    LOG.info("TaskId: " + taskId + " TaskId.getId(): " + taskId.getTaskID().getId());
     writeNode(taskRegisterKey, taskId, false, null);
 
   }
