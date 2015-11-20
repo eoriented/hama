@@ -34,7 +34,7 @@ import org.apache.hama.HamaConfiguration;
 import org.apache.hama.bsp.message.compress.Bzip2Compressor;
 import org.apache.hama.examples.ClassSerializePrinting;
 
-public class TestBSPMasterGroomServer extends HamaCluster {
+public class TestMultiBSPJobWithRegionBarrier extends HamaCluster {
 
   protected static Log LOG = LogFactory.getLog(TestBSPMasterGroomServer.class);
   public static String TMP_OUTPUT = "/tmp/test-example/";
@@ -46,7 +46,7 @@ public class TestBSPMasterGroomServer extends HamaCluster {
   // these variables are preventing from rebooting the whole stuff again since
   // setup and teardown are called per method.
 
-  public TestBSPMasterGroomServer() {
+  public TestMultiBSPJobWithRegionBarrier() {
     configuration = new HamaConfiguration();
     configuration.set("bsp.master.address", "localhost");
     configuration.setBoolean("hama.child.redirect.log.console", true);
@@ -57,7 +57,7 @@ public class TestBSPMasterGroomServer extends HamaCluster {
     configuration.set(Constants.ZOOKEEPER_QUORUM, "localhost");
     configuration.setInt(Constants.ZOOKEEPER_CLIENT_PORT, 21810);
     configuration.set("hama.sync.peer.class",
-        org.apache.hama.bsp.sync.ZooKeeperSyncClientImpl.class
+        org.apache.hama.bsp.sync.ZooKeeperRegionBarrierSyncClientImpl.class
             .getCanonicalName());
   }
 
@@ -91,7 +91,8 @@ public class TestBSPMasterGroomServer extends HamaCluster {
     configuration.setInt(Constants.ZOOKEEPER_SESSION_TIMEOUT, 6000);
     ClusterStatus cluster = jobClient.getClusterStatus(false);
     assertEquals(this.numOfGroom, cluster.getGroomServers());
-    bsp.setNumBspTask(6);
+    //bsp.setNumBspTask(2);
+    bsp.setTaskGroups(3, 2);
 
     FileSystem fileSys = FileSystem.get(configuration);
 
@@ -104,9 +105,9 @@ public class TestBSPMasterGroomServer extends HamaCluster {
   }
 
   public static void checkOutput(FileSystem fileSys, Configuration conf,
-      int tasks) throws Exception {
+                                 int tasks) throws Exception {
     FileStatus[] listStatus = fileSys.globStatus(new Path(OUTPUT_PATH + "/part-*"));
-    
+
     assertEquals(listStatus.length, tasks);
     for (FileStatus status : listStatus) {
       if (!status.isDir()) {
