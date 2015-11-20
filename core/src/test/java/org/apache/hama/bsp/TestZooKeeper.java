@@ -56,7 +56,7 @@ public class TestZooKeeper extends TestCase {
     configuration.set(Constants.ZOOKEEPER_QUORUM, "localhost");
     configuration.setInt(Constants.ZOOKEEPER_CLIENT_PORT,
         BSPNetUtils.getFreePort(20000));
-    configuration.set("hama.sync.client.class",
+    configuration.set("hama.sync.peer.class",
         org.apache.hama.bsp.sync.ZooKeeperSyncClientImpl.class
             .getCanonicalName());
   }

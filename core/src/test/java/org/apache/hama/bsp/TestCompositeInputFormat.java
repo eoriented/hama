@@ -46,7 +46,7 @@ public class TestCompositeInputFormat extends HamaCluster {
     configuration.set("bsp.local.dir", "/tmp/hama-test");
     configuration.set(Constants.ZOOKEEPER_QUORUM, "localhost");
     configuration.setInt(Constants.ZOOKEEPER_CLIENT_PORT, 21810);
-    configuration.set("hama.sync.client.class",
+    configuration.set("hama.sync.peer.class",
         org.apache.hama.bsp.sync.ZooKeeperSyncClientImpl.class
             .getCanonicalName());
   }
