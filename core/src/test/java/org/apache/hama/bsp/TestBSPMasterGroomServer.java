@@ -59,6 +59,11 @@ public class TestBSPMasterGroomServer extends HamaCluster {
     configuration.set("hama.sync.peer.class",
         org.apache.hama.bsp.sync.ZooKeeperSyncClientImpl.class
             .getCanonicalName());
+    configuration.setInt(Constants.MAX_TASKS_PER_GROOM, 10);
+    //configuration.setInt(Constants.MAX_TASKS, 20);
+    //configuration.setInt(Constants.MAX_TASKS_PER_JOB, 10);
+    //configuration.set("bsp.child.java.opts", "-Xmx200m");
+
   }
 
   @Override
@@ -91,7 +96,7 @@ public class TestBSPMasterGroomServer extends HamaCluster {
     configuration.setInt(Constants.ZOOKEEPER_SESSION_TIMEOUT, 6000);
     ClusterStatus cluster = jobClient.getClusterStatus(false);
     assertEquals(this.numOfGroom, cluster.getGroomServers());
-    bsp.setNumBspTask(6);
+    bsp.setNumBspTask(3);
 
     FileSystem fileSys = FileSystem.get(configuration);
 

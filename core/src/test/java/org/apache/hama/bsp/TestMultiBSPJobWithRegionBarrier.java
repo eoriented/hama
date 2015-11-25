@@ -59,6 +59,7 @@ public class TestMultiBSPJobWithRegionBarrier extends HamaCluster {
     configuration.set("hama.sync.peer.class",
         org.apache.hama.bsp.sync.ZooKeeperRegionBarrierSyncClientImpl.class
             .getCanonicalName());
+    configuration.set(Constants.MAX_TASKS_PER_GROOM, "10");
   }
 
   @Override
@@ -92,7 +93,7 @@ public class TestMultiBSPJobWithRegionBarrier extends HamaCluster {
     ClusterStatus cluster = jobClient.getClusterStatus(false);
     assertEquals(this.numOfGroom, cluster.getGroomServers());
     //bsp.setNumBspTask(2);
-    bsp.setTaskGroups(3, 2);
+    bsp.setTaskGroups(2, 1);
 
     FileSystem fileSys = FileSystem.get(configuration);
 

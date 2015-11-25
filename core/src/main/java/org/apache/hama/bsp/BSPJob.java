@@ -292,7 +292,7 @@ public class BSPJob extends BSPJobContext {
     this.setNumTasksPerGroup(tasksPerGroup);
     // Set automatically the number of tasks for running MultiBSPJob using group barrier sync.
     this.setNumBspTask(groups * tasksPerGroup);
-    this.set("hama.sync.peer.class",
+    this.set("hama.sync.client.class",
         org.apache.hama.bsp.sync.ZooKeeperRegionBarrierSyncClientImpl.class
             .getCanonicalName());
   }

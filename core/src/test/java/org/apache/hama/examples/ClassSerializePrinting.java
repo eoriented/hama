@@ -32,7 +32,7 @@ import org.apache.hama.bsp.sync.SyncException;
 public class ClassSerializePrinting extends
     BSP<NullWritable, NullWritable, IntWritable, Text, MapWritable> {
   
-  public static final int NUM_SUPERSTEPS = 15;
+  public static final int NUM_SUPERSTEPS = 2;
 
   @Override
   public void bsp(

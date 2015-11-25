@@ -24,13 +24,13 @@ import org.apache.hama.Constants;
 import org.apache.hama.bsp.BSPJobID;
 import org.apache.hama.bsp.TaskAttemptID;
 import org.apache.hama.zookeeper.QuorumPeer;
-import org.apache.zookeeper.CreateMode;
-import org.apache.zookeeper.KeeperException;
+import org.apache.zookeeper.*;
 import org.apache.zookeeper.ZooDefs.*;
-import org.apache.zookeeper.ZooKeeper;
 import org.apache.zookeeper.data.Stat;
 
+import java.io.IOException;
 import java.net.InetSocketAddress;
+import java.util.List;
 
 public class ZooKeeperRegionBarrierSyncClientImpl extends ZKSyncClient
     implements PeerSyncClient {
@@ -68,7 +68,56 @@ public class ZooKeeperRegionBarrierSyncClientImpl extends ZKSyncClient
 
   @Override
   public void enterBarrier(BSPJobID jobId, TaskAttemptID taskId, long superstep) throws SyncException {
+    LOG.info("[" + getPeerName() + "] enter the barrier: " + superstep);
+    int selectedGroup;
+    try {
+      synchronized (zk) {
+        List<String> groupZnodes = zk.getChildren(constructKey(taskId.getJobID(),
+            "groups"), false);
+        List<String> znodes;
+        selectedGroup = taskId.getTaskID().getId() % numGroups;
 
+        for (String groupId : groupZnodes) {
+          if (groupId.equals(Integer.toString(selectedGroup))) {
+            final String pathToSuperstepZnodePerGroup = constructKey(taskId.getJobID(),
+                "groups", groupId, "sync", Long.toString(superstep));
+
+            LOG.info("path to superstep znode  : " + pathToSuperstepZnodePerGroup);
+
+            writeNode(pathToSuperstepZnodePerGroup, null, true, null);
+
+            BarrierWatcher barrierWatcher = new BarrierWatcher();
+            zk.exists(pathToSuperstepZnodePerGroup + "/ready", barrierWatcher);
+            zk.create(constructKey(taskId.getJobID(), "groups", groupId, "sync",
+                    Long.toString(superstep), taskId.toString()), null, Ids.OPEN_ACL_UNSAFE,
+                CreateMode.EPHEMERAL);
+
+            znodes = zk.getChildren(pathToSuperstepZnodePerGroup, false);
+            LOG.info("enterbarrier childnode: " + znodes.toString());
+
+            int size = znodes.size();
+            boolean hasReady = znodes.contains("ready");
+            if (hasReady) {
+              size--;
+            }
+
+            if (size < numTasksPerGroup) {
+//              while (!barrierWatcher.isComplete()) {
+//                if (!hasReady) {
+//                  synchronized (mutex) {
+//                    mutex.wait(1000);
+//                  }
+//                }
+//              }
+            } else {
+              writeNode(pathToSuperstepZnodePerGroup + "ready", null, false, null);
+            }
+          }
+        }
+      }
+    } catch (Exception e) {
+      throw new SyncException(e.toString());
+    }
   }
 
   @Override
@@ -84,36 +133,56 @@ public class ZooKeeperRegionBarrierSyncClientImpl extends ZKSyncClient
     Stat stat = null;
 
     while (stat != null) {
+      LOG.info("jobRegisterKey" + jobRegisterKey);
+
       try {
         stat = zk.exists(jobRegisterKey, false);
         zk.create(jobRegisterKey, new byte[0], Ids.OPEN_ACL_UNSAFE,
             CreateMode.PERSISTENT);
         Thread.sleep(1000);
-      } catch (InterruptedException e) {
-        LOG.error(e);
-      } catch (KeeperException e) {
-        LOG.error(e);
+      } catch (Exception e) {
+        LOG.debug(e);
       }
 
       retry_count++;
-      if (retry_count> 0) {
+      if (retry_count > 9) {
         throw new RuntimeException("Cannot create root node.");
       }
     }
 
-    // Register
+    // Register groups
     registerGroup(jobId, hostAddress, port, taskId);
+
+    /*
+    try {
+      LOG.info("parent of children: "+ constructKey(jobId));
+      List<String> list = zk.getChildren(constructKey(jobId, "groups"), true);
+      LOG.info("/bsp/jobId/groups/: " + list);
+      list = zk.getChildren(constructKey(jobId, "groups",
+          Integer.toString(taskId.getTaskID().getId())), true);
+      LOG.info("/bsp/jobId/groups/" + Integer.toString(taskId.getTaskID().getId())
+          + "/:" + list);
+    } catch (InterruptedException e) {
+      e.printStackTrace();
+    } catch (KeeperException e) {
+      e.printStackTrace();
+    }*/
+
   }
 
-  public void registerGroup(BSPJobID jobId, String hostAddress,
-                            long port, TaskAttemptID taskId) {
-    int taskCount = 0;
+  public void registerGroup(BSPJobID jobId, String hostAddress, long port,
+                            TaskAttemptID taskId) {
     String groupRegisterKey;
+    int selectedGroup;
+
+    // Register the number of groups which is set in configuration, "bsp.groups.num"
+    // into zookeeper.
     for (int i = 0; i < numGroups; i++) {
-      for (int j = 0; j < numTasksPerGroup; j++) {
-        groupRegisterKey = constructKey(jobId, "groups", hostAddress + ":" + port);
+      selectedGroup = taskId.getTaskID().getId() % numGroups;
+      if (i == selectedGroup) {
+        groupRegisterKey = constructKey(jobId, "groups", Integer.toString(i),
+            hostAddress + ":" + port);
         LOG.info("Task Register Key: " + groupRegisterKey);
-        LOG.info("TaskId: " + taskId + " TaskId.getId(): " + taskId.getTaskID().getId());
         writeNode(groupRegisterKey, taskId, false, null);
       }
     }
@@ -132,5 +201,25 @@ public class ZooKeeperRegionBarrierSyncClientImpl extends ZKSyncClient
   @Override
   public void stopServer() {
 
+  }
+
+  public String getPeerName() {
+    return peerAddress.getHostName() + ":" + peerAddress.getPort();
+  }
+
+  private class BarrierWatcher implements Watcher {
+    private boolean complete = false;
+
+    boolean isComplete() {
+      return this.complete;
+    }
+
+    @Override
+    public void process(WatchedEvent event) {
+      this.complete = true;
+      synchronized (mutex) {
+        mutex.notifyAll();
+      }
+    }
   }
 }
