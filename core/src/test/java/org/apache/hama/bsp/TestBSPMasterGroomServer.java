@@ -96,7 +96,7 @@ public class TestBSPMasterGroomServer extends HamaCluster {
     configuration.setInt(Constants.ZOOKEEPER_SESSION_TIMEOUT, 6000);
     ClusterStatus cluster = jobClient.getClusterStatus(false);
     assertEquals(this.numOfGroom, cluster.getGroomServers());
-    bsp.setNumBspTask(3);
+    bsp.setNumBspTask(6);
 
     FileSystem fileSys = FileSystem.get(configuration);
 

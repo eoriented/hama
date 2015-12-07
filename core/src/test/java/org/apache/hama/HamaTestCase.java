@@ -67,6 +67,7 @@ public abstract class HamaTestCase extends TestCase {
     conf.setStrings("bsp.local.dir", "/tmp/hama-test");
     conf.set("bsp.master.address", "localhost");
     conf.set("bsp.groom.report.address", "127.0.0.1:0");
+    conf.setInt("bsp.tasks.maximum", 6);
   }
 
   /**

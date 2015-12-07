@@ -85,6 +85,11 @@ public abstract class ZKSyncClient implements SyncClient, Watcher {
     // + taskId.toString();
   }
 
+  protected String getNodeNameinGroup(TaskAttemptID taskId, long superstep, String groupId) {
+    return constructKey(taskId.getJobID(), "groups", groupId,  "sync", "" + superstep,
+        taskId.toString());
+  }
+
   private String correctKey(String key) {
     if (!key.startsWith("/")) {
       key = "/" + key;
